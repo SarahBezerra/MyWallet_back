@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import bcrypt from 'bcrypt';
 import joi from 'joi'
 import { MongoClient, ObjectId } from 'mongodb';
 
@@ -15,16 +16,19 @@ app.post('/cadastro', (req, res) => {
     const registrationSchema = joi.object({
         name: joi.string().required(),
         email: joi.string().email().required(),
-        password: joi.string().required(),
-        confirm_password: joi.ref('password')
+        password: joi.string().required()
     })
 
-    const registrationData = req.body
+    const encryptedPassword = bcrypt.hashSync(req.body.password, 10)
+
+    const registrationData = { ...req.body, password: encryptedPassword }
+
     const validation = registrationSchema.validate(registrationData)
     if(validation.error){
-        return res.sendStatus(422)
+        return res.status(422).send("Confira se os dados foram informados corretamente")
     }
 
+    console.log(registrationData)
     res.sendStatus(201)
 })
 
