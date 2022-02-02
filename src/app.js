@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import bcrypt from 'bcrypt';
 import joi from 'joi'
+import { v4 as uuid } from 'uuid'
 import { MongoClient, ObjectId } from 'mongodb';
 
 const app = express();
@@ -17,7 +18,27 @@ mongoClient.connect(() => {
 });
 
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const user = await db.collection("userData").findOne({ email: email })
+
+        if(!user){
+            return res.sendStatus(401)
+        }
+
+        if(bcrypt.compareSync(password, user.password)){
+            const token = uuid();
+            return res.send(token).status(200)
+        }
+
+        res.sendStatus(401)
+
+    } catch(error) {
+        console.log(error)
+        res.sendStatus(500)
+    }
 })
 
 app.post('/cadastro', async (req, res) => {
@@ -27,17 +48,16 @@ app.post('/cadastro', async (req, res) => {
         password: joi.string().required()
     })
 
-    const encryptedPassword = bcrypt.hashSync(req.body.password, 10)
+    const validation = registrationSchema.validate(req.body)
 
-    const registrationData = { ...req.body, password: encryptedPassword }
-
-    const validation = registrationSchema.validate(registrationData)
-    if(validation.error){
-        return res.status(422).send("Confira se os dados foram informados corretamente")
+    if(validation.error || await db.collection("userData").findOne({ email: req.body.email })){
+        return res.status(422).send("Algum dado informado está incorreto")
     }
 
+    const encryptedPassword = bcrypt.hashSync(req.body.password, 10)
+
     try {
-        await db.collection("userData").insertOne(registrationData)
+        await db.collection("userData").insertOne({ ...req.body, password: encryptedPassword })
         res.sendStatus(201)
 
     } catch(error) {
