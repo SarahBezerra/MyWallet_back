@@ -30,13 +30,14 @@ app.post('/login', async (req, res) => {
 
         if(bcrypt.compareSync(password, user.password)){
             const token = uuid();
+
+            await db.collection("sessions").insertOne({ userId: user._id, token })
             return res.send(token).status(200)
         }
 
-        res.sendStatus(401)
+        res.status(401).send("Email ou senha incorretos")
 
     } catch(error) {
-        console.log(error)
         res.sendStatus(500)
     }
 })
@@ -61,8 +62,47 @@ app.post('/cadastro', async (req, res) => {
         res.sendStatus(201)
 
     } catch(error) {
-        console.log(error)
         res.sendStatus(500)
+    }
+})
+
+app.get('/extrato', async (req, res) => {
+
+    const { authorization } = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+
+
+    if(!token) return res.sendStatus(401);
+
+    const session = await db.collection("sessions").findOne({ token });
+    if (!session) {
+        return res.sendStatus(401);
+    }
+
+    const user = await db.collection("userData").findOne({ 
+		_id: session.userId
+	})
+
+    if(user) {
+        try {
+            const registries = await db.collection("registries").find({ userId: user._id }).toArray();
+
+            let saldo = 0;
+            registries.map(registry => (registry.type === "entrada") ? saldo += parseFloat(registry.value) : saldo -= parseFloat(registry.value))
+
+            if(registries){
+                const infos = {registries, name: user.name, saldo}
+                return res.send(infos)
+            }
+    
+            res.send("Não há registros de entrada ou saída")
+        }
+        catch(error) {
+            res.send(error)
+         }
+
+    } else {
+        res.sendStatus(401);
     }
 })
 
