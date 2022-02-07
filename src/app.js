@@ -26,12 +26,13 @@ app.post('/login', async (req, res) => {
         const user = await db.collection("userData").findOne({ email: email })
 
         if(!user){
-            return res.sendStatus(401)
+            return res.status(401).send("Email ou senha incorretos")
         }
 
         if(bcrypt.compareSync(password, user.password)){
             const token = uuid();
 
+            await db.collection("sessions").deleteOne({ userId: user._id })
             await db.collection("sessions").insertOne({ userId: user._id, token })
             return res.send(token).status(200)
         }
@@ -47,13 +48,13 @@ app.post('/cadastro', async (req, res) => {
     const registrationSchema = joi.object({
         name: joi.string().required(),
         email: joi.string().email().required(),
-        password: joi.string().required()
+        password: joi.string().pattern(/^.{4,}$/).required()
     })
 
     const validation = registrationSchema.validate(req.body)
 
     if(validation.error || await db.collection("userData").findOne({ email: req.body.email })){
-        return res.status(422).send("Algum dado informado está incorreto")
+        return res.status(422).send("Por favor, revise os dados inseridos")
     }
 
     const encryptedPassword = bcrypt.hashSync(req.body.password, 10)
@@ -91,7 +92,7 @@ app.get('/extrato', async (req, res) => {
             registries.map(registry => (registry.type === "entrada") ? saldo += parseFloat(registry.value) : saldo -= parseFloat(registry.value))
 
             if(registries){
-                const infos = {registries, name: user.name, saldo}
+                const infos = {registries, name: user.name, saldo: parseFloat(saldo).toFixed(2)}
                 return res.send(infos)
             }
     
@@ -121,20 +122,32 @@ app.post('/registrar/:tipo_de_registro', async (req, res) => {
     const { userId } = session;
 
     const valueRecordSchema = joi.object({
-        value: joi.string().pattern(/^[0-9]+.[0-9]{2}$/).required(),
-        description: joi.string().pattern(/^[A-Za-z0-9]{2,20}$/).required(),
+        value: joi.string().pattern(/^[0-9]+\.[0-9]{2}$/).required(),
+        description: joi.string().pattern(/^.{2,13}$/).required(),
         type: joi.string().valid('saida', 'entrada').required()
     })
 
-    const validation = valueRecordSchema.validate(req.body, { abortEarly: false })
+    const validation = valueRecordSchema.validate(req.body)
 
     if(validation.error){
-        return res.status(422).send(validation.error.details.map(error => error.message))
+        return res.status(422).send("Por favor, verifique os dados informados")
     }
 
     await db.collection("registries").insertOne({ ...req.body, userId, date: dayjs().format('DD/MM') })
     res.sendStatus(201)
 
+})
+
+app.delete("/deleteRegistry/:_id", async (req, res) => {
+    const { _id } = req.params;
+
+    try {
+        await db.collection("registries").deleteOne({ _id: new ObjectId(_id) })
+        res.sendStatus(200)
+    }
+    catch(error) {
+        res.sendStatus(500)
+    }
 })
 
 app.listen(5000);
