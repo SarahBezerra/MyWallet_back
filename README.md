@@ -10,7 +10,7 @@ Criação de servidor, manipulação e validação de dados.
 
 <p float="left">
 <img src="https://img.icons8.com/color/48/000000/javascript--v1.png" width=50px />
-<img src="https://boaglio.com/wp-content/uploads/2015/05/mongodb.png" width=50px />
+<img src="https://seeklogo.com/images/M/mongodb-logo-4A71340576-seeklogo.com.png" width=70px height=50px />
 <img src="https://media.bitdegree.org/storage/media/images/2018/12/node-js-interview-questions-logo-2-266x300.png" width=50px />
 </p>
   
