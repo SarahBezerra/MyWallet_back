@@ -9,7 +9,7 @@ Criação de servidor, manipulação e validação de dados.
 ## Tecnologias
 
 <p float="left">
-<img src="https://media.bitdegree.org/storage/media/images/2018/12/node-js-interview-questions-logo-2-266x300.png" width=40px margin-right=10px />
+<img src="https://media.bitdegree.org/storage/media/images/2018/12/node-js-interview-questions-logo-2-266x300.png" width=40px />
 <img src="https://seeklogo.com/images/M/mongodb-logo-4A71340576-seeklogo.com.png" width=130px height=50px />
 </p>
   
